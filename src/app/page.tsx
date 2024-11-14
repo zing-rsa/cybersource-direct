@@ -1,95 +1,99 @@
-import Image from "next/image";
-import styles from "./page.module.css";
+'use client'
 
-export default function Home() {
+import { useEffect, useRef, useState } from "react";
+import { useSearchParams, redirect } from 'next/navigation'
+import axios from 'axios';
+import "./globals.css";
+
+interface TransactionState {
+  data_collection_url: string,
+  access_token: string,
+}
+
+interface StepUpResponse {
+  step_up_required: boolean
+  step_up_url: string
+  token: string,
+  redirect_url: string
+}
+
+
+export default function Page() {
+  const searchParams = useSearchParams();
+  const dataCollectionFormRef = useRef(null);
+  const stepUpFormRef = useRef(null);
+
+  const [dataCollectionToken, setFormToken] = useState(null);
+  const [dataCollectionUrl, setDataCollectionUrl] = useState(null);
+
+  const [stepUpUrl, setStepUpUrl] = useState(null);
+  const [stepUpUrlToken, setStepUpToken] = useState(null);
+
+  useEffect(() => {
+    const stateId = searchParams.get("stateId");
+    const gatewayToken = searchParams.get("token");
+
+    console.log(`stateId: ${stateId}, token: ${gatewayToken}`);
+
+    const fetchDataCollectionDetails = async () => {
+      console.log("fetching pa details")
+      const res = await axios.get<TransactionState>(`http://localhost:8082/card/pa/${stateId}`, { headers: { Authorization: `Bearer ${gatewayToken}`}})
+      console.log("data collection response: ", res)
+      
+      console.log(`token: ${res.data.access_token}, url: ${res.data.data_collection_url}`);
+      setFormToken(res.data.access_token);
+      setDataCollectionUrl(res.data.data_collection_url);
+    };
+    
+    const processPa = async () => {
+      console.log("processing pa")
+      const res = await axios.post<StepUpResponse>(`http://localhost:8082/card/pa/${stateId}`, { headers: { Authorization: `Bearer ${gatewayToken}`}})
+      console.log("stepup response: ", res)
+
+      setStepUpToken(res.data.token)
+      setStepUpUrl(res.data.step_up_url)
+      
+      if (res.data.step_up_required) {
+        if (stepUpFormRef.current)
+          stepUpFormRef.current.submit()
+        // pa
+      } else {
+        console.log("no pa required: redirecting")
+        // redirect(res.data.redirectUrl)
+      }
+    };
+
+    fetchDataCollectionDetails();
+
+    const timer = setTimeout(() => {
+      processPa();
+    }, 10 * 1000);
+
+    return () => clearTimeout(timer);
+  }, []);
+
   return (
-    <div className={styles.page}>
-      <main className={styles.main}>
-        <Image
-          className={styles.logo}
-          src="/next.svg"
-          alt="Next.js logo"
-          width={180}
-          height={38}
-          priority
-        />
-        <ol>
-          <li>
-            Get started by editing <code>src/app/page.tsx</code>.
-          </li>
-          <li>Save and see your changes instantly.</li>
-        </ol>
+    <html lang="en">
+      <body>
+        { dataCollectionToken && dataCollectionUrl && // Data collection iframe
+          <div>
+            <iframe id="cardinal_collection_iframe" name="collectionIframe" height="10" width="10" style={{"display": "none"}} ></iframe>
+            <form ref={dataCollectionFormRef} id="cardinal_collection_form" method="POST" target="collectionIframe" action={dataCollectionUrl}  onSubmit={() => console.log("datacollection form submitted")}>
+              <input id="cardinal_collection_form_input" type="hidden" name="JWT" value={dataCollectionToken}/>
+            </form>
+          </div>
+        }
 
-        <div className={styles.ctas}>
-          <a
-            className={styles.primary}
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <Image
-              className={styles.logo}
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={20}
-              height={20}
-            />
-            Deploy now
-          </a>
-          <a
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-            className={styles.secondary}
-          >
-            Read our docs
-          </a>
-        </div>
-      </main>
-      <footer className={styles.footer}>
-        <a
-          href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/file.svg"
-            alt="File icon"
-            width={16}
-            height={16}
-          />
-          Learn
-        </a>
-        <a
-          href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/window.svg"
-            alt="Window icon"
-            width={16}
-            height={16}
-          />
-          Examples
-        </a>
-        <a
-          href="https://nextjs.org?utm_source=create-next-app&utm_medium=appdir-template&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/globe.svg"
-            alt="Globe icon"
-            width={16}
-            height={16}
-          />
-          Go to nextjs.org →
-        </a>
-      </footer>
-    </div>
+        { stepUpUrl && stepUpUrlToken && // Step-up iframe
+          <div>
+            <iframe name="step-up-iframe" height="400" width="400" ></iframe>
+            <form ref={stepUpFormRef} id="step-up-form" target="step-up-iframe" method="post" action={stepUpUrlToken} onSubmit={() => console.log("stepup form submitted")}>
+              <input type="hidden" name="JWT" value={stepUpUrl} /> 
+              {/* <input type="hidden" name="MD" value="optionally_include_custom_data_that_will_be_returned_as_is"/>  */}
+            </form>
+          </div>
+        }
+      </body>
+    </html>
   );
 }
