@@ -23,7 +23,7 @@ export default function Page() {
   const dataCollectionFormRef = useRef(null);
   const stepUpFormRef = useRef(null);
 
-  const [dataCollectionToken, setFormToken] = useState(null);
+  const [dataCollectionToken, setDataCollectionToken] = useState(null);
   const [dataCollectionUrl, setDataCollectionUrl] = useState(null);
 
   const [stepUpUrl, setStepUpUrl] = useState(null);
@@ -33,52 +33,58 @@ export default function Page() {
     const stateId = searchParams.get("stateId");
     const gatewayToken = searchParams.get("token");
 
-    console.log(`stateId: ${stateId}, token: ${gatewayToken}`);
-
     const fetchDataCollectionDetails = async () => {
-      console.log("fetching pa details")
+      console.log("fetching data collection details")
       const res = await axios.get<TransactionState>(`http://localhost:8082/card/pa/${stateId}`, { headers: { Authorization: `Bearer ${gatewayToken}`}})
-      console.log("data collection response: ", res)
+      console.log("data collection details: ", res)
       
-      console.log(`token: ${res.data.access_token}, url: ${res.data.data_collection_url}`);
-      setFormToken(res.data.access_token);
+      setDataCollectionToken(res.data.access_token);
       setDataCollectionUrl(res.data.data_collection_url);
     };
     
-    const processPa = async () => {
-      console.log("processing pa")
+    const fetchStepUpDetails = async () => {
+      console.log("fetching step up details")
       const res = await axios.post<StepUpResponse>(`http://localhost:8082/card/pa/${stateId}`, { headers: { Authorization: `Bearer ${gatewayToken}`}})
-      console.log("stepup response: ", res)
+      console.log("step up details: ", res)
 
       setStepUpToken(res.data.token)
       setStepUpUrl(res.data.step_up_url)
       
-      if (res.data.step_up_required) {
-        if (stepUpFormRef.current)
-          stepUpFormRef.current.submit()
-        // pa
-      } else {
+      if (!res.data.step_up_required) {
         console.log("no pa required: redirecting")
         // redirect(res.data.redirectUrl)
       }
     };
 
-    fetchDataCollectionDetails();
-
-    const timer = setTimeout(() => {
-      processPa();
+    const timer = setTimeout(async () => {
+      await fetchStepUpDetails();
     }, 10 * 1000);
+
+    fetchDataCollectionDetails();
 
     return () => clearTimeout(timer);
   }, []);
 
+  useEffect(() => {
+    if (dataCollectionToken && dataCollectionUrl && dataCollectionFormRef.current) {
+      console.log('submitting data collection form')
+      dataCollectionFormRef.current.submit()
+    }
+  }, [dataCollectionToken, dataCollectionUrl])
+
+  useEffect(() => {
+    if (stepUpUrl && stepUpUrlToken && stepUpFormRef.current) {
+      console.log('submitting stepup form')
+      stepUpFormRef.current.submit()
+    }
+  }, [stepUpUrl, stepUpUrlToken])
+
   return (
-    <html lang="en">
-      <body>
+    <>
         { dataCollectionToken && dataCollectionUrl && // Data collection iframe
           <div>
             <iframe id="cardinal_collection_iframe" name="collectionIframe" height="10" width="10" style={{"display": "none"}} ></iframe>
-            <form ref={dataCollectionFormRef} id="cardinal_collection_form" method="POST" target="collectionIframe" action={dataCollectionUrl}  onSubmit={() => console.log("datacollection form submitted")}>
+            <form ref={dataCollectionFormRef} id="cardinal_collection_form" method="POST" target="collectionIframe" action={dataCollectionUrl} >
               <input id="cardinal_collection_form_input" type="hidden" name="JWT" value={dataCollectionToken}/>
             </form>
           </div>
@@ -87,13 +93,12 @@ export default function Page() {
         { stepUpUrl && stepUpUrlToken && // Step-up iframe
           <div>
             <iframe name="step-up-iframe" height="400" width="400" ></iframe>
-            <form ref={stepUpFormRef} id="step-up-form" target="step-up-iframe" method="post" action={stepUpUrlToken} onSubmit={() => console.log("stepup form submitted")}>
-              <input type="hidden" name="JWT" value={stepUpUrl} /> 
+            <form ref={stepUpFormRef} id="step-up-form" target="step-up-iframe" method="post" action={stepUpUrl} >
+              <input type="hidden" name="JWT" value={stepUpUrlToken} /> 
               {/* <input type="hidden" name="MD" value="optionally_include_custom_data_that_will_be_returned_as_is"/>  */}
             </form>
           </div>
         }
-      </body>
-    </html>
+    </>
   );
 }
