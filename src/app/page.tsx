@@ -30,12 +30,13 @@ export default function Page() {
   const [stepUpUrlToken, setStepUpToken] = useState(null);
 
   useEffect(() => {
+    console.log(process.env.NEXT_PUBLIC_API_BASE_URL)
     const stateId = searchParams.get("stateId");
     const gatewayToken = searchParams.get("token");
 
     const fetchDataCollectionDetails = async () => {
       console.log("fetching data collection details")
-      const res = await axios.get<TransactionState>(`http://localhost:8082/card/pa/${stateId}`, { headers: { Authorization: `Bearer ${gatewayToken}`}})
+      const res = await axios.get<TransactionState>(`${process.env.NEXT_PUBLIC_API_BASE_URL}/card/pa/${stateId}`, { headers: { Authorization: `Bearer ${gatewayToken}`}})
       console.log("data collection details: ", res)
       
       setDataCollectionToken(res.data.access_token);
@@ -44,15 +45,19 @@ export default function Page() {
     
     const fetchStepUpDetails = async () => {
       console.log("fetching step up details")
-      const res = await axios.post<StepUpResponse>(`http://localhost:8082/card/pa/${stateId}`, { headers: { Authorization: `Bearer ${gatewayToken}`}})
+      const res = await axios.post<StepUpResponse>(`${process.env.NEXT_PUBLIC_API_BASE_URL}/card/pa/${stateId}`, { headers: { Authorization: `Bearer ${gatewayToken}`}})
       console.log("step up details: ", res)
 
       setStepUpToken(res.data.token)
       setStepUpUrl(res.data.step_up_url)
       
       if (!res.data.step_up_required) {
-        console.log("no pa required: redirecting")
-        // redirect(res.data.redirectUrl)
+        console.log("no pa required: redirecting in 5 seconds")
+        await new Promise((resolve) => {
+          setTimeout(resolve, 5000)
+        })
+
+        redirect(res.data.redirect_url)
       }
     };
 
