@@ -30,7 +30,6 @@ export default function Page() {
   const [stepUpUrlToken, setStepUpToken] = useState(null);
 
   useEffect(() => {
-    console.log(process.env.NEXT_PUBLIC_API_BASE_URL)
     const stateId = searchParams.get("stateId");
     const gatewayToken = searchParams.get("token");
 
