@@ -96,8 +96,8 @@ export default function Page() {
 
         { stepUpUrl && stepUpUrlToken && // Step-up iframe
           <div>
-            <iframe name="step-up-iframe" height="400" width="400" ></iframe>
-            <form ref={stepUpFormRef} id="step-up-form" target="step-up-iframe" method="post" action={stepUpUrl} >
+            {/* <iframe name="step-up-iframe" height="400" width="400" ></iframe> */}
+            <form ref={stepUpFormRef} id="step-up-form" method="post" action={stepUpUrl} >
               <input type="hidden" name="JWT" value={stepUpUrlToken} /> 
               {/* TOD0: add access token in this form post? */}
               {/* <input type="hidden" name="MD" value="optionally_include_custom_data_that_will_be_returned_as_is"/>  */}
