@@ -32,10 +32,11 @@ export default function Page() {
   useEffect(() => {
     const sessionStateId = searchParams.get("sessionStateId");
     const gatewayToken = searchParams.get("token");
+    const isSandbox = JSON.parse(searchParams.get("isSandbox"));
 
     const fetchDataCollectionDetails = async () => {
       console.log("fetching data collection details")
-      const res = await axios.post<TransactionState>(`${process.env.NEXT_PUBLIC_API_BASE_URL}/card/pa/${sessionStateId}/start`, { headers: { Authorization: `Bearer ${gatewayToken}`, "ngrok-skip-browser-warning": "69420" }})
+      const res = await axios.post<TransactionState>(`${process.env.NEXT_PUBLIC_API_BASE_URL}/${isSandbox === true ? "sandbox/" : ""}card/pa/${sessionStateId}/start`, { headers: { Authorization: `Bearer ${gatewayToken}`, "ngrok-skip-browser-warning": "69420" }})
       console.log("data collection details: ", res)
       
       setDataCollectionToken(res.data.token);
@@ -44,7 +45,7 @@ export default function Page() {
     
     const fetchStepUpDetails = async () => {
       console.log("fetching step up details")
-      const res = await axios.post<StepUpResponse>(`${process.env.NEXT_PUBLIC_API_BASE_URL}/card/pa/${sessionStateId}/step_up`, { headers: { Authorization: `Bearer ${gatewayToken}`, "ngrok-skip-browser-warning": "69420" }}) // ngrok header just for local testing
+      const res = await axios.post<StepUpResponse>(`${process.env.NEXT_PUBLIC_API_BASE_URL}/${isSandbox === true ? "sandbox/" : ""}card/pa/${sessionStateId}/step_up`, { headers: { Authorization: `Bearer ${gatewayToken}`, "ngrok-skip-browser-warning": "69420" }}) // ngrok header just for local testing
       console.log("step up details: ", res)
 
       setStepUpToken(res.data.token)
