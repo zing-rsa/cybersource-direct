@@ -32,7 +32,7 @@ export default function Page() {
   useEffect(() => {
     const sessionStateId = searchParams.get("sessionStateId");
     const gatewayToken = searchParams.get("token");
-    const isSandbox = JSON.parse(searchParams.get("isSandbox"));
+    const isSandbox = JSON.parse(searchParams.get("isSandbox") ?? "false");
 
     const fetchDataCollectionDetails = async () => {
       console.log("fetching data collection details")
